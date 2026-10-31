@@ -110,6 +110,23 @@ td input[type=checkbox],th input[type=checkbox]{width:18px;height:18px;cursor:po
 .warn{background:#fff8e6;border:1px solid #f1dda2;color:#7a5a12;border-radius:12px;padding:10px 14px;margin:10px 0;font-size:14px}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:11px 22px;border-radius:99px;z-index:120;animation:rise .3s both;font-size:14px;max-width:90vw;text-align:center}
 .toast.bad{background:#a12231}
+.lbh{margin:22px 0 8px;font-size:16px;color:var(--navy)}
+.lb{max-height:460px;overflow:auto;padding:2px}
+.lbi{position:relative;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;padding:11px 14px;border-radius:14px;background:#f5f9fc;margin:7px 0;overflow:hidden;animation:rise .4s both}
+.lbi:before{content:"";position:absolute;top:0;bottom:0;right:0;left:auto;width:var(--w,0%);background:linear-gradient(270deg,#139ba526,#087fb01a);transition:width 1s ease}
+.lbi>*{position:relative}
+.lbi .rk{font-weight:bold;font-size:18px;text-align:center;color:var(--navy)}
+.lbi .nm{font-weight:bold;word-break:break-word}.lbi .nm small{display:block;font-weight:normal;color:var(--muted);font-size:12px}
+.lbi .sc{text-align:left;font-weight:bold;color:var(--navy);font-variant-numeric:tabular-nums}
+.lbi.g1{background:linear-gradient(90deg,#fff6d6,#fff)}.lbi.g2{background:linear-gradient(90deg,#eef1f5,#fff)}.lbi.g3{background:linear-gradient(90deg,#fbeadb,#fff)}
+.lbi.g1 .rk,.lbi.g2 .rk,.lbi.g3 .rk{font-size:26px}
+.stage-on{position:fixed!important;inset:0;z-index:90;margin:0!important;border-radius:0!important;overflow:auto;background:linear-gradient(135deg,#0d2547,#0e8c9a)!important;color:#fff;padding:26px clamp(16px,5vw,70px)!important}
+.stage-on h2,.stage-on .lbh{color:#fff}.stage-on h2{font-size:30px}.stage-on .lbh{font-size:22px}
+.stage-on .podium{min-height:300px;gap:18px;margin-top:20px}.stage-on .pod .nm{font-size:23px}.stage-on .pod .sc{font-size:38px}.stage-on .pod .medal{font-size:48px}
+.stage-on .lb{max-height:none;overflow:visible}
+.stage-on .lbi{background:#ffffff1c;color:#fff;font-size:20px}.stage-on .lbi .rk,.stage-on .lbi .sc{color:#fff}.stage-on .lbi .nm small{color:#cdeef7}
+.stage-on .lbi.g1{background:linear-gradient(90deg,#f5b30159,#ffffff1c)}.stage-on .lbi.g2{background:linear-gradient(90deg,#94a3b859,#ffffff1c)}.stage-on .lbi.g3{background:linear-gradient(90deg,#d08a5059,#ffffff1c)}
+.stage-on .btn.secondary{background:#ffffff26;color:#fff;border-color:#ffffff40}
 @media(max-width:800px){.stats{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.row{grid-template-columns:105px 1fr 44px}.podium{min-height:0}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -146,7 +163,12 @@ td input[type=checkbox],th input[type=checkbox]{width:18px;height:18px;cursor:po
 <div class="stat"><span class="ic">✅</span><strong id="passed">0</strong><span>نتائج 75% فأكثر</span></div>
 </div>
 
-<section class="panel"><h2>🏆 منصة التتويج</h2><div class="podium" id="podium"></div></section>
+<section class="panel" id="podiumPanel">
+<div class="phead"><h2>🏆 منصة التتويج</h2><button class="btn secondary sm" id="stageBtn">🖥 وضع العرض</button></div>
+<div class="podium" id="podium"></div>
+<h3 class="lbh" id="lbh" hidden>ترتيب جميع المتسابقين</h3>
+<div class="lb" id="leader"></div>
+</section>
 
 <section class="panel">
 <div class="phead"><h2>📋 ترتيب المشاركين</h2><button class="btn danger sm" id="delSel" disabled>🗑 حذف المحدد (0)</button></div>
@@ -253,7 +275,7 @@ function render(){
   rows.sort((a,b)=>b.percent-a.percent||a.seconds-b.seconds);
   ROWS=rows;
   const live=new Set(rows.map(r=>r.id));[...SEL].forEach(i=>{if(!live.has(i))SEL.delete(i)});
-  renderPodium(rows);renderRanking(rows);updateDel();
+  renderPodium(rows);renderLeader(rows);renderRanking(rows);updateDel();
   renderDist(all);renderHours(all);renderGenders(base);renderQuestions(all);
 }
 function renderPodium(rows){
@@ -263,6 +285,20 @@ function renderPodium(rows){
   const top=rows.slice(0,3),medals=["🥇","🥈","🥉"];
   [1,0,2].forEach(i=>{const r=top[i];if(!r){p.appendChild(el("div"));return}
     const d=el("div","pod p"+(i+1));d.append(el("div","medal",medals[i]),el("div","nm",r.name),el("div","sc",r.percent+"%"),el("div","tm",`${r.score}/${r.total} • ${fmtT(r.seconds)}`));p.appendChild(d)});
+}
+function renderLeader(rows){
+  const box=$("leader");box.innerHTML="";$("lbh").hidden=!rows.length;
+  rows.forEach((r,i)=>{
+    const d=el("div","lbi"+(i<3?" g"+(i+1):""));d.style.animationDelay=Math.min(i,24)*30+"ms";d.style.setProperty("--w",r.percent+"%");
+    const nm=el("div","nm",(r.gender==="male"?"👦 ":r.gender==="female"?"👧 ":"")+r.name);nm.appendChild(el("small",null,`${r.score}/${r.total} إجابة • ${fmtT(r.seconds)}`));
+    d.append(el("div","rk",["🥇","🥈","🥉"][i]||"#"+(i+1)),nm,el("div","sc",r.percent+"%"));box.appendChild(d);
+  });
+}
+function stage(on){
+  const p=$("podiumPanel");p.classList.toggle("stage-on",on);$("stageBtn").textContent=on?"✕ إغلاق العرض":"🖥 وضع العرض";
+  document.body.style.overflow=on?"hidden":"";
+  if(on&&p.requestFullscreen)p.requestFullscreen().catch(()=>{});
+  if(!on&&document.fullscreenElement)document.exitFullscreen().catch(()=>{});
 }
 function renderRanking(rows){
   const q=$("search").value.trim().toLowerCase(),box=$("ranking");box.innerHTML="";
@@ -460,6 +496,9 @@ document.querySelector(".tabs").onclick=e=>{
 $("quizSel").onchange=()=>{curQuiz=$("quizSel").value;SEL.clear();render()};
 $("gfilter").onclick=e=>{const b=e.target.closest("button");if(!b)return;[...$("gfilter").children].forEach(x=>x.classList.toggle("on",x===b));gfilter=b.dataset.g;render()};
 $("search").oninput=()=>renderRanking(ROWS);$("bestOnly").onchange=()=>{SEL.clear();render()};$("refresh").onclick=()=>load(true);
+$("stageBtn").onclick=()=>stage(!$("podiumPanel").classList.contains("stage-on"));
+document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&$("podiumPanel").classList.contains("stage-on"))stage(false)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("podiumPanel").classList.contains("stage-on"))stage(false)});
 $("export").onclick=exportCsv;$("delSel").onclick=deleteSelected;$("newQuiz").onclick=()=>openEditor(null);
 function unlock(){const c=$("code").value.trim();if(!c)return;CODE=c;try{localStorage.setItem("medialab_dash_code",c)}catch(e){}$("code").value="";$("lockMsg").textContent="";load(true)}
 $("unlock").onclick=unlock;$("code").addEventListener("keydown",e=>{if(e.key==="Enter")unlock()});
